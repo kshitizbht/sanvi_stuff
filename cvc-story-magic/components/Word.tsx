@@ -9,7 +9,7 @@ const Word: React.FC<WordProps> = ({ text }) => {
     // Clean text for speech (remove punctuation)
     const cleanText = text.replace(/[^a-zA-Z0-9]/g, '');
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = 0.8; // Slightly slower for kids
+    utterance.rate = 1; // Slightly slower for kids
     utterance.pitch = 1.1; // Slightly higher pitch
     window.speechSynthesis.cancel(); // Stop previous
     window.speechSynthesis.speak(utterance);

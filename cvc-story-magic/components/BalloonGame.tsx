@@ -19,15 +19,15 @@ const BalloonGame: React.FC<BalloonGameProps> = ({ onRestart }) => {
       // Super slow speed for kids: 0.5 to 1.0 (was 1.5 to 2.5)
       // Animation duration = 10 / speed. 
       // speed 0.5 = 20 seconds. speed 1.0 = 10 seconds.
-      speed: Math.random() * 0.5 + 0.5, 
+      speed: Math.random() * 1 + 0.5, 
     };
 
     setBalloons((prev) => [...prev, newBalloon]);
   }, []);
 
   useEffect(() => {
-    // Spawn a balloon every 1.5 seconds (slower spawn rate too)
-    const interval = setInterval(spawnBalloon, 1500);
+    // Spawn a balloon every 1 seconds (slower spawn rate too)
+    const interval = setInterval(spawnBalloon, 1000);
     return () => clearInterval(interval);
   }, [spawnBalloon]);
 
