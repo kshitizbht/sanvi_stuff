@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Little Readers: CVC Storybook</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        /* CSS: The Look and Feel */
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* The Book Container */
+        #book-container {
+            background: white;
+            width: 90%;
+            max-width: 800px;
+            margin-top: 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 20px;
+            text-align: center;
+            border: 5px solid #FFD700;
+        }
+
+        /* Image Styling */
+        #story-image {
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            border-radius: 15px;
+            border: 2px dashed #ccc;
+            margin-bottom: 20px;
+        }
+
+        /* Text Area */
+        #story-text {
+            font-size: 2.5rem;
+            color: #333;
+            margin: 20px 0;
+            line-height: 1.4;
+        }
+
+        /* Interactive Words */
+        .word {
+            cursor: pointer;
+            padding: 0 5px;
+            border-radius: 5px;
+            transition: background 0.2s, transform 0.2s;
+            display: inline-block;
+        }
+
+        .word:hover {
+            background-color: #ffd700;
+            transform: scale(1.1);
+            color: #000;
+        }
+
+        /* Navigation Buttons */
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+        }
+
+        button {
+            background-color: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2rem;
+            border-radius: 50px;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 4px 0 #c92a2a;
+            transition: transform 0.1s;
+        }
+
+        button:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+
+        /* Game Overlay */
+        #game-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .balloon {
+            position: absolute;
+            bottom: -100px;
+            width: 80px;
+            height: 100px;
+            border-radius: 50%;
+            cursor: crosshair;
+            animation: floatUp 4s linear forwards;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 20px;
+            box-shadow: inset -10px -10px 20px rgba(0,0,0,0.1);
+        }
+        
+        .balloon::before {
+             content: "";
+             position: absolute;
+             bottom: -10px;
+             width: 2px;
+             height: 20px;
+             background: #333;
+        }
+
+        /* Burst particle for pop effect */
+        .particle {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 1;
+            transform: translate3d(0,0,0) scale(1);
+            transition: transform 520ms cubic-bezier(.22,.9,.32,1), opacity 520ms ease-out;
+            will-change: transform, opacity;
+        }
+
+        @keyframes floatUp {
+            to { transform: translateY(-120vh); }
+        }
+
+        h1.congrats {
+            font-size: 4rem;
+            color: #ff6b6b;
+            text-shadow: 2px 2px 0px #ffd700;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="book-container">
+        <img id="story-image" src="" alt="Story visual">
+        <div id="story-text"></div>
+        
+        <div class="controls">
+            <button id="prev-btn" onclick="changePage(-1)">&#8592; Back</button>
+            <button id="next-btn" onclick="changePage(1)">Next &#8594;</button>
+        </div>
+    </div>
+
+    <div id="game-overlay">
+        <h1 class="congrats">Congratulations!</h1>
+        <p style="font-size: 1.5rem;">Pop the balloons!</p>
+        <button onclick="restartBook()">Read Again</button>
+    </div>
+
+    <script>
+        // --- DATA: The Story Content ---
+        // You can add as many pages as you want here.
+        // I am using placeholder images, replace URLs with your actual images.
+        const storyData = [
+            {
+                text: "The Cat is cooking pop corn in a pan.",
+                image: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&q=80" 
+            },
+            {
+                text: "The dog sits on a big log.",
+                image: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&q=80"
+            },
+            {
+                text: "The pig has a pink wig.",
+                image: "https://images.unsplash.com/photo-1516467508483-a7212febe31a?w=600&q=80"
+            },
+            // New simple CVC pages for kids
+            {
+                text: "The bat sat on a red mat.",
+                image: "https://images.unsplash.com/photo-1504208434309-cb69f4fe52b0?w=600&q=80"
+            },
+            {
+                text: "The hen has a red pen.",
+                image: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&q=80"
+            },
+            {
+                text: "The kid has a big bag.",
+                image: "https://images.unsplash.com/photo-1529068755536-a5ade0f0840f?w=600&q=80"
+            }
+        ];
+
+        let currentPage = 0;
+        const synth = window.speechSynthesis;
+
+        // --- CORE FUNCTIONS ---
+
+        function loadPage(index) {
+            const data = storyData[index];
+            document.getElementById('story-image').src = data.image;
+            
+            // Logic to split sentence into individual interactive words
+            const textContainer = document.getElementById('story-text');
+            textContainer.innerHTML = ''; // Clear previous text
+            
+            const words = data.text.split(' ');
+            
+            words.forEach(word => {
+                const span = document.createElement('span');
+                span.textContent = word + ' '; // Add space back
+                span.className = 'word';
+                
+                // Add Hover Event for pronunciation
+                span.onmouseenter = () => speakWord(word);
+                // Add Click Event (better for tablets/mobile)
+                span.onclick = () => speakWord(word);
+                
+                textContainer.appendChild(span);
+            });
+
+            // Handle Buttons
+            document.getElementById('prev-btn').disabled = index === 0;
+            const nextBtn = document.getElementById('next-btn');
+            
+            if (index === storyData.length - 1) {
+                nextBtn.innerHTML = "Finish! &#9733;";
+                nextBtn.style.backgroundColor = "#4cd137"; // Green for finish
+            } else {
+                nextBtn.innerHTML = "Next &#8594;";
+                nextBtn.style.backgroundColor = "#ff6b6b";
+            }
+        }
+
+        function changePage(direction) {
+            if (direction === 1 && currentPage === storyData.length - 1) {
+                startEndGame(); // User clicked Finish
+                return;
+            }
+
+            currentPage += direction;
+            loadPage(currentPage);
+        }
+
+        function speakWord(text) {
+            // Stop any current speech to avoid overlaps
+            if (synth.speaking || synth.pending) synth.cancel();
+
+            // Trim trailing punctuation for cleaner reading
+            const cleanText = String(text).replace(/[\.,\/#!$%\^&\*;:{}=\-_`~()]+$/g, "");
+
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.rate = 0.9; // Slightly slower for kids
+            utterance.pitch = 1.1;
+            utterance.lang = 'en-US';
+
+            // Use a tiny delay after canceling to ensure the queue is cleared
+            setTimeout(() => {
+                try { synth.speak(utterance); } catch (e) { console.warn('Speech failed:', e); }
+            }, 30);
+        }
+
+        // --- GAME LOGIC ---
+
+        function startEndGame() {
+            const overlay = document.getElementById('game-overlay');
+            overlay.style.display = 'flex';
+            
+            // Trigger Confetti
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+
+            // Start Balloon Loop
+            let balloonInterval = setInterval(() => {
+                if(overlay.style.display === 'none') {
+                    clearInterval(balloonInterval);
+                    return;
+                }
+                spawnBalloon();
+            }, 800);
+        }
+
+        // Reusable AudioContext for pop sounds (some browsers require a resumed context)
+        let audioCtx = null;
+
+        function spawnBalloon() {
+            const balloon = document.createElement('div');
+            balloon.className = 'balloon';
+            
+            // Random Color
+            const colors = ['#ff6b6b', '#4ecdc4', '#ffe66d', '#ff9ff3', '#54a0ff'];
+            balloon.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            
+            // Random Horizontal Position
+            balloon.style.left = Math.random() * 90 + '%';
+
+            // Click to Pop
+            balloon.onclick = (e) => {
+                popSound();
+
+                // compute center of balloon for burst origin
+                const rect = balloon.getBoundingClientRect();
+                const cx = rect.left + rect.width / 2;
+                const cy = rect.top + rect.height / 2;
+
+                // create small burst particles at center
+                createBurst(cx, cy, balloon.style.backgroundColor, document.getElementById('game-overlay'));
+
+                balloon.style.transform = "scale(1.5)";
+                balloon.style.opacity = "0";
+                setTimeout(() => balloon.remove(), 200);
+            };
+
+            // Support touch on mobile (tap to pop)
+            balloon.ontouchstart = (e) => { e.preventDefault(); balloon.onclick(e); };
+
+            document.getElementById('game-overlay').appendChild(balloon);
+
+            // Cleanup if it floats off screen
+            setTimeout(() => {
+                if(balloon.parentNode) balloon.remove();
+            }, 4000);
+        }
+        function popSound() {
+            const AudioContextCtor = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContextCtor) return; // No audio support
+
+            if (!audioCtx) {
+                audioCtx = new AudioContextCtor();
+            }
+
+            // Some browsers require resume() on user gesture
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => {});
+            }
+
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+
+            oscillator.type = 'sine';
+            const now = audioCtx.currentTime;
+            oscillator.frequency.setValueAtTime(800, now);
+            oscillator.frequency.exponentialRampToValueAtTime(120, now + 0.1);
+
+            gainNode.gain.setValueAtTime(0.5, now);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            oscillator.start(now);
+            oscillator.stop(now + 0.12);
+
+            // Cleanup connections shortly after stopping
+            setTimeout(() => {
+                try { oscillator.disconnect(); } catch (e) {}
+                try { gainNode.disconnect(); } catch (e) {}
+            }, 300);
+        }
+
+        // Create a short burst of particles at page (client) coordinates x,y
+        function createBurst(clientX, clientY, color = '#fff', container = document.body) {
+            const count = 12; // number of particles
+            const overlayRect = container.getBoundingClientRect();
+
+            for (let i = 0; i < count; i++) {
+                const p = document.createElement('div');
+                p.className = 'particle';
+
+                // random size
+                const size = 6 + Math.floor(Math.random() * 10);
+                p.style.width = size + 'px';
+                p.style.height = size + 'px';
+                p.style.background = color || ['#ff6b6b', '#4ecdc4', '#ffe66d', '#ff9ff3', '#54a0ff'][Math.floor(Math.random()*5)];
+
+                // place at center relative to container
+                const left = clientX - overlayRect.left - (size/2);
+                const top = clientY - overlayRect.top - (size/2);
+                p.style.left = left + 'px';
+                p.style.top = top + 'px';
+
+                container.appendChild(p);
+
+                // random direction and distance
+                const angle = Math.random() * Math.PI * 2;
+                const dist = 40 + Math.random() * 80;
+                const dx = Math.cos(angle) * dist;
+                const dy = Math.sin(angle) * dist - (10 + Math.random()*20);
+
+                // start animation on next frame
+                requestAnimationFrame(() => {
+                    p.style.transform = `translate3d(${dx}px, ${dy}px, 0) scale(0.4)`;
+                    p.style.opacity = '0';
+                });
+
+                // remove after animation
+                setTimeout(() => { try { p.remove(); } catch(e){} }, 600 + Math.random()*200);
+            }
+        }
+
+        function restartBook() {
+            document.getElementById('game-overlay').style.display = 'none';
+            // Remove existing balloons
+            document.querySelectorAll('.balloon').forEach(b => b.remove());
+            currentPage = 0;
+            loadPage(0);
+        }
+
+        // Initialize First Page
+        loadPage(0);
+
+    </script>
+</body>
+</html>
